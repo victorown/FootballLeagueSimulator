@@ -1,0 +1,195 @@
+﻿@page "/"
+@using FootballLeagueSimulation;
+@using Newtonsoft.Json;
+@using System.Collections.Generic;
+@using System.IO;
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+@if (!isStartLeague)
+{
+    <h1>Welcome To Football League Simulator</h1>
+    <hr />
+    <h3>Enter Your Football League Name Below</h3>
+    <div class="row my-4">
+        <div class="col-5">
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="floatingInput" @bind="@league.Name">
+                <label for="floatingInput">League Name</label>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <button class="btn btn-primary" @onclick="StartLeague">Start League</button>
+        </div>
+    </div>
+}
+
+@if (isStartLeague)
+{
+    <h1>@league.Name</h1>
+    <hr />
+    <div class="row">
+        <div class="col-5 d-flex justify-content-around">
+            <button class="btn btn-primary my-3" @onclick="() => isShowTeams = !isShowTeams">Show Team</button>
+            <button class="btn btn-primary my-3" @onclick="() => isShowFinalStandings = !isShowFinalStandings">Show Final
+                Standing</button>
+            <button class="btn btn-primary my-3" @onclick="() => isShowMatchResults = !isShowMatchResults">Show Final
+                Matches</button>
+        </div>
+    </div>
+}
+
+@if (isShowTeams || isShowFinalStandings)
+{
+    @if (isShowTeams)
+    {
+        <h2 class="my-3">Teams</h2>
+    }
+    else
+    {
+        <h2 class="my-3">Final Standings</h2>
+    }
+    <table class="table">
+        <thead>
+            @if (isShowFinalStandings)
+            {
+                <tr>
+                    <th>Name</th>
+                    <th>Points</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Draws</th>
+                </tr>
+
+            }
+            else
+            {
+                <tr>
+                    <th colspan="13">Data Team</th>
+                </tr>
+            }
+        </thead>
+        <tbody>
+            @foreach (var x in league.Teams.OrderByDescending(x => x.Points))
+            {
+                if (isShowFinalStandings)
+                {
+                    <tr>
+                        <th>@x.Name</th>
+                        <th>@x.Points</th>
+                        <th>@x.Wins</th>
+                        <th>@x.Losses</th>
+                        <th colspan="8">@x.Draws</th>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="13"></td>
+                    </tr>
+                    <tr>
+                        <th>@x.Name</th>
+                        <th>Position</th>
+                        <th>Height</th>
+                        <th>Speed</th>
+                        <th>Strength</th>
+                        <th>Acceleration</th>
+                        <th>Tackle</th>
+                        <th>Stamina</th>
+                        <th>Passing</th>
+                        <th>Control</th>
+                        <th>Shot</th>
+                        <th>KeeperHandling</th>
+                        <th>KeeperReflexes</th>
+                    </tr>
+                }
+                @if (!isShowFinalStandings)
+                {
+                    @foreach (var y in x.Players)
+                    {
+                        <tr>
+
+                            <td>@y.Name</td>
+                            <td>@y.Position</td>
+                            <td>@y.Height</td>
+                            <td>@y.Speed</td>
+                            <td>@y.Strength</td>
+                            <td>@y.Acceleration</td>
+                            <td>@y.Tackle</td>
+                            <td>@y.Stamina</td>
+                            <td>@y.Passing</td>
+                            <td>@y.Control</td>
+                            <td>@y.Shot</td>
+                            <td>@y.KeeperHandling</td>
+                            <td>@y.KeeperReflexes</td>
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@if (isShowMatchResults)
+{
+    <h2 class="my-3">Matches Result</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Team A</th>
+                <th>Team B</th>
+                <th>Score Team A</th>
+                <th>Score Team B</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var mR in scheduleRes.Matches)
+            {
+                <tr>
+                    <td>@mR.TeamA.Name</td>
+                    <td>@mR.TeamB.Name</td>
+                    <td>@mR.ScoreA</td>
+                    <td>@mR.ScoreB</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+@code
+{
+    Random random = new();
+    League league = new League();
+    public string? Name { get; set; }
+    public bool isShowTeams = false;
+    public bool isStartLeague = false;
+    public bool isShowSchedule = false;
+    public bool isShowMatchResults = false;
+    public bool isShowFinalStandings = false;
+    List<Teams>? teams = [];
+    Scedule? scheduleRes = new();
+
+    protected void StartLeague()
+    {
+        string? dataTeam = File.ReadAllText("FootballTeam.json");
+        teams = JsonConvert.DeserializeObject<List<Teams>>(dataTeam);
+        foreach (var t in teams!)
+        {
+            var finalTeam = Team.GenerateTeam(t);
+            league.Teams.Add(finalTeam);
+        }
+        scheduleRes!.GenerateScadule(league.Teams);
+        foreach (var m in scheduleRes.Matches.OrderBy(x => random.Next()))
+        {
+            m.PlayMatch();
+        }
+        isStartLeague = true;
+        league.DetermineWinner(scheduleRes.Matches);
+
+    }
+
+}
