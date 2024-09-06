@@ -1,1 +1,1 @@
-# FootballLeagueSimulator-Blazor-
+# FootballLeagueSimulator
